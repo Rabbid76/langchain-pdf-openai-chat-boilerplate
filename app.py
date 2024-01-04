@@ -1,6 +1,5 @@
 from langchain.agents.agent_toolkits import (create_vectorstore_agent, VectorStoreToolkit, VectorStoreInfo)
 from langchain.callbacks.base import BaseCallbackHandler
-from langchain_community.chat_models import ChatOpenAI
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.llms import OpenAI
 from langchain.schema import HumanMessage
@@ -15,15 +14,34 @@ if openai_key is not None:
     os.environ['OPENAI_API_KEY'] = openai_key
 
 persist_directory = './chroma_db'
+message_placeholder = None
 
-llm = OpenAI(temperature = 0.1, verbose = True)
+class ChatCallbackHandler(BaseCallbackHandler):
+    def __init__(self):
+        self.response = ""
+
+    def on_llm_start(self, serialized, prompts, **kwargs):
+        self.response = ""
+    
+    def on_llm_new_token(self, token: str, **kwargs):
+        self.response += token
+        if message_placeholder: 
+            message_placeholder.markdown(self.response + "▌")
+    
+    def on_llm_end(self, response, **kwargs):
+        if message_placeholder: 
+            message_placeholder.markdown(self.response)
+
+chat_callback = ChatCallbackHandler()
+llm = OpenAI(temperature = 0.1, verbose = True, streaming = True, callbacks = [chat_callback])
+
 embeddings = OpenAIEmbeddings()
 db = Chroma(persist_directory = persist_directory, embedding_function = embeddings)
 
 vectorstore_info = VectorStoreInfo(name= 'pdf_report', description = 'report in PDF format', vectorstore = db)
 toolkit = VectorStoreToolkit(vectorstore_info = vectorstore_info)
 
-agent_executor = create_vectorstore_agent(llm=llm, toolkit=toolkit, verbose=True)
+agent_executor = create_vectorstore_agent(llm = llm, toolkit = toolkit, verbose = True)
 
 st.title("ChatGPT like PDF chatbot")
 
