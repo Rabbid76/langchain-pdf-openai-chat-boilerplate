@@ -9,7 +9,8 @@ The OpenAI key must either be set in the environment variable `OPENAI_API_KEY` o
 
 ## Required python packages
 
-`chromadb`, `langchain`, `openai`, `streamlit`
+`chromadb`, `langchain`, `langchain-community`, `openai`, `pypdf`, `streamlit`, `tiktoken`
+
 
 ## Create the database
 
